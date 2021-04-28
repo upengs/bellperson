@@ -17,7 +17,7 @@ use crate::multiexp::{multiexp, multiexp_fulldensity, density_filter, multiexp_s
 use crate::{
     Circuit, ConstraintSystem, Index, LinearCombination, SynthesisError, Variable, BELLMAN_VERSION,
 };
-use log::info;
+use log::*;
 
 // use crossbeam_channel::{bounded, Receiver};
 
