@@ -256,8 +256,19 @@ where
     C: Circuit<E> + Send,
     R: RngCore,
 {
-    let r_s = (0..circuits.len()).map(|_| E::Fr::random(rng)).collect();
-    let s_s = (0..circuits.len()).map(|_| E::Fr::random(rng)).collect();
+
+    let mut r_s=vec![];
+    let mut s_s=vec![];
+    rayon::scope(|s|{
+        let  s_s=&mut s_s;
+        let  r_s=&mut r_s;
+        s.spawn(|_|{
+            *r_s = (0..circuits.len()).map(|_| E::Fr::random(rng)).collect();
+        });
+        s.spawn(|_|{
+             *s_s = (0..circuits.len()).map(|_| E::Fr::random(rng)).collect();
+        });
+    });
 
     create_proof_batch_priority::<E, C, P>(circuits, params, r_s, s_s, priority)
 }

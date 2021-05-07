@@ -107,10 +107,13 @@ where
         let exp_bits = exp_size::<E>() * 8;
         let core_count = utils::get_core_count(&d);
         let mem = d.memory();
+        // 最大的chunk size
         let max_n = calc_chunk_size::<E>(mem, core_count);
+        // 最合适的chunk size
         let best_n = calc_best_chunk_size(MAX_WINDOW_SIZE, core_count, exp_bits);
-        let n = std::cmp::min(max_n, best_n);
 
+        let n = std::cmp::min(max_n, best_n);
+        println!("SingleMultiexpKernel core_count:{},mem:{},max_n:{},best_n:{},priority:{}",core_count,mem,max_n,best_n,priority);
         Ok(SingleMultiexpKernel {
             program: opencl::Program::from_opencl(d, &src)?,
             core_count,
@@ -225,7 +228,7 @@ where
         if locks::PriorityLock::should_break(priority) {
             return Err(GPUError::GPUTaken);
         }
-
+        // 锁卡
         let lock = locks::GPULock::lock();
 
         let devices = opencl::Device::all()?;
