@@ -76,6 +76,7 @@ struct ProvingAssignment<E: Engine> {
     aux_assignment: Vec<E::Fr>,
 }
 use std::fmt;
+use std::path::Prefix::Verbatim;
 
 impl<E: Engine> fmt::Debug for ProvingAssignment<E> {
     fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
@@ -256,22 +257,10 @@ where
     C: Circuit<E> + Send,
     R: RngCore,
 {
+    let r_s = (0..circuits.len()).map(|_| E::Fr::random(rng)).collect();
+    let s_s = (0..circuits.len()).map(|_| E::Fr::random(rng)).collect();
 
-    let mut r_s=None;
-    let mut s_s=None;
-
-    rayon::scope(|s|{
-        let  s_s=&mut s_s;
-        let  r_s=&mut r_s;
-        s.spawn(|_|{
-            *r_s = Some((0..circuits.len()).map(|_| E::Fr::random(rng)).collect());
-        });
-        s.spawn(|_|{
-             *s_s = Some((0..circuits.len()).map(|_| E::Fr::random(rng)).collect());
-        });
-    });
-
-    create_proof_batch_priority::<E, C, P>(circuits, params, r_s.unwrap(), s_s.unwrap(), priority)
+    create_proof_batch_priority::<E, C, P>(circuits, params, r_s, s_s, priority)
 }
 
 pub fn create_proof_batch_priority<E, C, P: ParameterSource<E>>(
