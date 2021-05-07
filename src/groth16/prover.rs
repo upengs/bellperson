@@ -257,16 +257,17 @@ where
     R: RngCore,
 {
 
-    let mut r_s=vec![];
-    let mut s_s=vec![];
+    let mut r_s=None;
+    let mut s_s=None;
+
     rayon::scope(|s|{
         let  s_s=&mut s_s;
         let  r_s=&mut r_s;
         s.spawn(|_|{
-            *r_s = (0..circuits.len()).map(|_| E::Fr::random(rng)).collect();
+            *r_s = Some((0..circuits.len()).map(|_| E::Fr::random(rng)).collect());
         });
         s.spawn(|_|{
-             *s_s = (0..circuits.len()).map(|_| E::Fr::random(rng)).collect();
+             *s_s = Some((0..circuits.len()).map(|_| E::Fr::random(rng)).collect());
         });
     });
 
