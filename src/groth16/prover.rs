@@ -271,7 +271,7 @@ where
         });
     });
 
-    create_proof_batch_priority::<E, C, P>(circuits, params, r_s, s_s, priority)
+    create_proof_batch_priority::<E, C, P>(circuits, params, r_s.unwrap(), s_s.unwrap(), priority)
 }
 
 pub fn create_proof_batch_priority<E, C, P: ParameterSource<E>>(
