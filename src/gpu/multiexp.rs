@@ -361,10 +361,7 @@ where
             let cpu_r = rx_cpu.recv().unwrap();
 
             for r in results {
-                match r {
-                    Ok(r) => acc.add_assign(&r),
-                    Err(e) => return Err(e),
-                }
+                acc.add_assign(&r?);
             }
             acc.add_assign(&cpu_r);
             Ok(acc)
