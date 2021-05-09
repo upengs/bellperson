@@ -12,6 +12,8 @@ use rayon::prelude::*;
 use rust_gpu_tools::*;
 use std::any::TypeId;
 use std::sync::Arc;
+use std::sync::mpsc;
+use scoped_threadpool::Pool;
 
 const MAX_WINDOW_SIZE: usize = 10;
 const LOCAL_WORK_SIZE: usize = 256;
@@ -291,49 +293,63 @@ where
         let (cpu_exps, exps) = exps.split_at(cpu_n);
 
         let chunk_size = ((n as f64) / (num_devices as f64)).ceil() as usize;
+        crate::multicore::THREAD_POOL.install(|| {
+            let mut acc = <G as CurveAffine>::Projective::zero();
+            let (tx_gpu, rx_gpu) = mpsc::channel();
+            let (tx_cpu, rx_cpu) = mpsc::channel();
+            let mut scoped_pool = Pool::new(2);
+            scoped_pool.scoped(|scoped| {
+                // GPU
+                scoped.execute(move || {
+                    let results =   if n > 0 {
+                        bases
+                            .par_chunks(chunk_size)
+                            .zip(exps.par_chunks(chunk_size))
+                            .zip(self.kernels.par_iter_mut())
+                            .map(|((bases, exps), kern)| -> Result<<G as CurveAffine>::Projective, GPUError> {
+                                let mut acc = <G as CurveAffine>::Projective::zero();
+                                for (bases, exps) in bases.chunks(kern.n).zip(exps.chunks(kern.n)) {
+                                    match kern.multiexp(bases, exps, bases.len()) {
+                                        Ok(result) => acc.add_assign(&result),
+                                        Err(e) => return Err(e),
+                                    }
+                                }
 
-        let mut acc = <G as CurveAffine>::Projective::zero();
+                                Ok(acc)
+                            })
+                            .collect::<Vec<_>>()
+                    } else {
+                        Vec::new()
+                    };
+                    tx_gpu.send(results).unwrap();
+                });
 
-        let results = crate::multicore::THREAD_POOL.install(|| {
-            if n > 0 {
-                bases
-                .par_chunks(chunk_size)
-                .zip(exps.par_chunks(chunk_size))
-                .zip(self.kernels.par_iter_mut())
-                .map(|((bases, exps), kern)| -> Result<<G as CurveAffine>::Projective, GPUError> {
-                    let mut acc = <G as CurveAffine>::Projective::zero();
-                    for (bases, exps) in bases.chunks(kern.n).zip(exps.chunks(kern.n)) {
-                        match kern.multiexp(bases, exps, bases.len()) {
-                            Ok(result) => acc.add_assign(&result),
-                            Err(e) => return Err(e),
-                        }
-                    }
+                // CPU
+                scoped.execute(move || {
+                    let cpu_acc = cpu_multiexp(
+                        &pool,
+                        (Arc::new(cpu_bases.to_vec()), 0),
+                        FullDensity,
+                        Arc::new(cpu_exps.to_vec()),
+                        &mut None,
+                    );
+                    let cpu_r = cpu_acc.wait().unwrap();
+                    tx_cpu.send(cpu_r).unwrap();
+                });
+                });
 
-                    Ok(acc)
-                })
-                .collect::<Vec<_>>()
-            } else {
-                Vec::new()
+            // waiting results...
+            let results = rx_gpu.recv().unwrap();
+            let cpu_r = rx_cpu.recv().unwrap();
+
+            for r in results {
+                match r {
+                    Ok(r) => acc.add_assign(&r),
+                    Err(e) => return Err(e),
+                }
             }
-        });
-
-        let cpu_acc = cpu_multiexp(
-            &pool,
-            (Arc::new(cpu_bases.to_vec()), 0),
-            FullDensity,
-            Arc::new(cpu_exps.to_vec()),
-            &mut None,
-        );
-
-        for r in results {
-            match r {
-                Ok(r) => acc.add_assign(&r),
-                Err(e) => return Err(e),
-            }
-        }
-
-        acc.add_assign(&cpu_acc.wait().unwrap());
-
-        Ok(acc)
+            acc.add_assign(&cpu_r);
+            Ok(acc)
+        })
     }
 }
