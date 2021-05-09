@@ -333,11 +333,11 @@ where
                     n += 1;
                 }
             }
-
             let (bss, skip) = bases.clone().get();
-            k.multiexp(pool, bss, Arc::new(exps.clone()), skip, n)
+            k.multiexp(pool, bss, Arc::new(exps), skip, n)
         }) {
-            return Waiter::done(Ok(p));
+            let result = Waiter::done(Ok(p));
+            return result
         }
     }
 
@@ -359,8 +359,7 @@ where
         // Do not give the control back to the caller till the
         // multiexp is done. We may want to reacquire the GPU again
         // between the multiexps.
-        let result = result.wait();
-        Waiter::done(result)
+        Waiter::done(result.wait())
     }
     #[cfg(not(feature = "gpu"))]
     result
