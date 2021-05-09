@@ -60,14 +60,14 @@ pub fn test_parallel_prover() {
         #[cfg(not(feature = "_coverage"))]
         iterations: 10_000,
         #[cfg(feature = "_coverage")]
-        iterations: 100,
+        iterations: 1_000,
     };
     // Lower prio circuit
     let c2 = DummyDemo {
         #[cfg(not(feature = "_coverage"))]
         iterations: 500_000,
         #[cfg(feature = "_coverage")]
-        iterations: 5000,
+        iterations: 5_000,
     };
 
     let params = generate_random_parameters::<Bls12, _, _>(c.clone(), rng).unwrap();
