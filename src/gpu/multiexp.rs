@@ -15,7 +15,7 @@ use std::sync::Arc;
 use std::sync::mpsc;
 use scoped_threadpool::Pool;
 
-const MAX_WINDOW_SIZE: usize = 10;
+const MAX_WINDOW_SIZE: usize = 11;
 const LOCAL_WORK_SIZE: usize = 256;
 const MEMORY_PADDING: f64 = 0.2f64; // Let 20% of GPU memory be free
 
