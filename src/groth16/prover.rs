@@ -426,7 +426,7 @@ where
     let mut fft_kern = Some(LockedFFTKernel::<E>::new(log_d, priority));
 
     let a_s = provers
-        .par_iter_mut()
+        .iter_mut()
         .map(|prover| {
             let mut a =
                 EvaluationDomain::from_coeffs(std::mem::replace(&mut prover.a, Vec::new()))?;
@@ -463,7 +463,7 @@ where
     info!("ZQ: h_s start");
     let now = Instant::now();
     let h_s = a_s
-        .into_par_iter()
+        .into_iter()
         .map(|a| {
             let h = multiexp_fulldensity(
                 &worker,
@@ -481,7 +481,7 @@ where
     info!("ZQ: l_s start");
     let now = Instant::now();
     let l_s = assignments
-        .par_iter()
+        .iter()
         .map(|(_,aux_assignment)| {
             let l = multiexp_fulldensity(
                 &worker,
@@ -499,8 +499,8 @@ where
     info!("ZQ: inputs start");
     let now = Instant::now();
     let inputs = provers
-        .into_par_iter()
-        .zip(assignments.into_par_iter())
+        .into_iter()
+        .zip(assignments.into_iter())
         .map(|(prover, (input_assignment,aux_assignment))| {
             let b_input_density = Arc::new(prover.b_input_density);
             let b_aux_density = Arc::new(prover.b_aux_density);
