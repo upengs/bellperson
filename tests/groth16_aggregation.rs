@@ -216,6 +216,7 @@ fn test_groth16_srs_io() {
     assert_eq!(srs, srs2);
 
     let cache_path = cache_file.into_temp_path();
+    println!("cache_path: {:?}",cache_path.as_os_str().into_os_string());
     let mapped_file = File::open(&cache_path).expect("failed to open file");
     let mmap = unsafe {
         MmapOptions::new()
